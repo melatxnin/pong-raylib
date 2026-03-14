@@ -40,6 +40,8 @@ int main(void)
     int player_lives = 3;
     bool player_won = false;
 
+    bool solo_mode = false;
+
     InitWindow(screen_width, screen_height, "Pong Game");
     InitAudioDevice();
 
@@ -101,8 +103,14 @@ int main(void)
         {
             case STATE_MENU:
 
-                if (IsKeyPressed(KEY_H))
+                if (IsKeyPressed(KEY_S))
                 {
+                    solo_mode = true;
+                    state = STATE_GAME;
+                }
+                else if (IsKeyPressed(KEY_T))
+                {
+                    solo_mode = false;
                     state = STATE_GAME;
                 }
 
@@ -110,9 +118,13 @@ int main(void)
 
                     ClearBackground(BLACK);
 
-                    const char *start_text = TextFormat("PRESS H TO START");
-                    int start_text_width = MeasureText(start_text, font_size);
-                    DrawText(start_text, screen_width / 2 - start_text_width / 2, screen_height / 2, font_size, RAYWHITE);
+                    const char *text_solo = TextFormat("PRESS S FOR SOLO");
+                    int text_solo_width = MeasureText(text_solo, font_size);
+                    DrawText(text_solo, screen_width / 2 - text_solo_width / 2, screen_height / 2 - 25, font_size, RAYWHITE);
+
+                    const char *text_multi = TextFormat("PRESS T FOR TWO PLAYERS");
+                    int text_multi_width = MeasureText(text_multi, font_size);
+                    DrawText(text_multi, screen_width / 2 - text_multi_width / 2, screen_height / 2 + 25, font_size, RAYWHITE);
 
                 EndDrawing();
                 
@@ -128,10 +140,25 @@ int main(void)
 
                 UpdateMusicStream(music);
 
-                if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
-                    player.y -= speed_paddle * GetFrameTime();
-                else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
-                    player.y += speed_paddle * GetFrameTime();
+                if (start_delay > 1.0f || enemy_lives < 3 || player_lives < 3)
+                {
+                    if (solo_mode)
+                    {
+                        if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W))
+                            player.y -= speed_paddle * GetFrameTime();
+
+                        if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S))
+                            player.y += speed_paddle * GetFrameTime();
+                    }
+                    else
+                    {
+                        if (IsKeyDown(KEY_UP))
+                            player.y -= speed_paddle * GetFrameTime();
+
+                        if (IsKeyDown(KEY_DOWN))
+                            player.y += speed_paddle * GetFrameTime();
+                    }
+                }
 
                 if (player.y < 0)
                     player.y = 0;
@@ -282,66 +309,79 @@ int main(void)
                     speed_ball = base_ball_speed;
                 }
 
-                if (ball_dir.x > 0 && enemy_has_prediction)
+                if (solo_mode)
                 {
-                    enemy_has_prediction = false;
-                    enemy_target = screen_height / 2 - enemy.height / 2;
-
-                    enemy_reaction_delay = (float)(pcg_range_int(200) + 80) / 1000.0f;
-
-                    enemy_reaction_timer = 0.0f;
-                }
-
-                if (ball_dir.x < 0 && !enemy_has_prediction && ball_pos.x < screen_width / 2)
-                {
-                    enemy_reaction_timer += GetFrameTime();
-
-                    if (enemy_reaction_timer >= enemy_reaction_delay)
+                    if (ball_dir.x > 0 && enemy_has_prediction)
                     {
-                        float vx = ball_dir.x * speed_ball;
+                        enemy_has_prediction = false;
+                        enemy_target = screen_height / 2 - enemy.height / 2;
 
-                        if (fabsf(vx) > 0.01f)
+                        enemy_reaction_delay = (float)(pcg_range_int(200) + 80) / 1000.0f;
+
+                        enemy_reaction_timer = 0.0f;
+                    }
+
+                    if (ball_dir.x < 0 && !enemy_has_prediction && ball_pos.x < screen_width / 2)
+                    {
+                        enemy_reaction_timer += GetFrameTime();
+
+                        if (enemy_reaction_timer >= enemy_reaction_delay)
                         {
-                            float time = (enemy.x - ball_pos.x) / vx;
+                            float vx = ball_dir.x * speed_ball;
 
-                            if (time > 0.0f)
+                            if (fabsf(vx) > 0.01f)
                             {
-                                float predicted_y = ball_pos.y + ball_dir.y * speed_ball * time;
+                                float time = (enemy.x - ball_pos.x) / vx;
 
-                                while (predicted_y < 0 || predicted_y > screen_height)
+                                if (time > 0.0f)
                                 {
-                                    if (predicted_y < 0)
-                                        predicted_y = -predicted_y;
+                                    float predicted_y = ball_pos.y + ball_dir.y * speed_ball * time;
 
-                                    if (predicted_y > screen_height)
-                                        predicted_y = 2 * screen_height - predicted_y;
+                                    while (predicted_y < 0 || predicted_y > screen_height)
+                                    {
+                                        if (predicted_y < 0)
+                                            predicted_y = -predicted_y;
+
+                                        if (predicted_y > screen_height)
+                                            predicted_y = 2 * screen_height - predicted_y;
+                                    }
+
+                                    enemy_target = predicted_y - enemy.height / 2;
+                                    enemy_target += pcg_range_int(200) - 100;
+
+                                    if (enemy_target < 0)
+                                        enemy_target = 0;
+
+                                    if (enemy_target > screen_height - enemy.height)
+                                        enemy_target = screen_height - enemy.height;
+
+                                    enemy_has_prediction = true;
                                 }
-
-                                enemy_target = predicted_y - enemy.height / 2;
-                                enemy_target += pcg_range_int(200) - 100;
-
-                                if (enemy_target < 0)
-                                    enemy_target = 0;
-
-                                if (enemy_target > screen_height - enemy.height)
-                                    enemy_target = screen_height - enemy.height;
-
-                                enemy_has_prediction = true;
                             }
                         }
                     }
-                }
 
-                float move = speed_paddle * GetFrameTime();
-                float dead_zone = 10.0f;
+                    float move = speed_paddle * GetFrameTime();
+                    float dead_zone = 10.0f;
 
-                if (enemy.y < enemy_target - dead_zone)
-                {
-                    enemy.y += move;
+                    if (enemy.y < enemy_target - dead_zone)
+                    {
+                        enemy.y += move;
+                    }
+                    else if (enemy.y > enemy_target + dead_zone)
+                    {
+                        enemy.y -= move;
+                    }
                 }
-                else if (enemy.y > enemy_target + dead_zone)
+                else
                 {
-                    enemy.y -= move;
+                    if (start_delay > 1.0f || enemy_lives < 3 || player_lives < 3)
+                    {
+                        if (IsKeyDown(KEY_W))
+                            enemy.y -= speed_paddle * GetFrameTime();
+                        else if (IsKeyDown(KEY_S))
+                            enemy.y += speed_paddle * GetFrameTime();
+                    }
                 }
 
                 if (enemy.y < 0)
