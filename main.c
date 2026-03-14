@@ -45,11 +45,11 @@ int main(void)
     InitWindow(screen_width, screen_height, "Pong Game");
     InitAudioDevice();
 
+    SetExitKey(KEY_NULL);
+
     Music music = LoadMusicStream("sounds/retro_music.wav");
     bool music_playing = false;
     Sound sound_hit = LoadSound("sounds/hit_sound.wav");
-    Sound sound_game_over = LoadSound("sounds/game_over_sound.wav");
-    bool game_over_sound_played = false;
     
     SetTargetFPS(60);
 
@@ -103,12 +103,12 @@ int main(void)
         {
             case STATE_MENU:
 
-                if (IsKeyPressed(KEY_S))
+                if (IsKeyPressed(KEY_X))
                 {
                     solo_mode = true;
                     state = STATE_GAME;
                 }
-                else if (IsKeyPressed(KEY_T))
+                else if (IsKeyPressed(KEY_Y))
                 {
                     solo_mode = false;
                     state = STATE_GAME;
@@ -118,13 +118,13 @@ int main(void)
 
                     ClearBackground(BLACK);
 
-                    const char *text_solo = TextFormat("PRESS S FOR SOLO");
+                    const char *text_solo = TextFormat("PRESS X FOR SOLO");
                     int text_solo_width = MeasureText(text_solo, font_size);
-                    DrawText(text_solo, screen_width / 2 - text_solo_width / 2, screen_height / 2 - 25, font_size, RAYWHITE);
+                    DrawText(text_solo, screen_width / 2 - text_solo_width / 2, screen_height / 2 - 30, font_size, RAYWHITE);
 
-                    const char *text_multi = TextFormat("PRESS T FOR TWO PLAYERS");
+                    const char *text_multi = TextFormat("PRESS Y FOR TWO PLAYERS");
                     int text_multi_width = MeasureText(text_multi, font_size);
-                    DrawText(text_multi, screen_width / 2 - text_multi_width / 2, screen_height / 2 + 25, font_size, RAYWHITE);
+                    DrawText(text_multi, screen_width / 2 - text_multi_width / 2, screen_height / 2 + 30, font_size, RAYWHITE);
 
                 EndDrawing();
                 
@@ -132,6 +132,32 @@ int main(void)
             
             case STATE_GAME:
                 
+                if (IsKeyPressed(KEY_ESCAPE))
+                {
+                    enemy_lives = 3;
+                    player_lives = 3;
+
+                    player_won = false;
+
+                    ball_pos = (Vector2){screen_width /2, screen_height / 2};
+                    speed_ball = base_ball_speed;
+
+                    player.y = screen_height / 2 - paddle_height / 2;
+                    enemy.y = screen_height / 2 - paddle_height / 2;
+
+                    ball_active = false;
+                    blink_timer = 0.0f;
+                    wait_timer = 0.0f;
+                    blink_count = 0;
+                    start_delay = 0.0f;
+                    ball_visible = true;
+
+                    StopMusicStream(music);
+                    music_playing = false;
+
+                    state = STATE_MENU;
+                }
+
                 if (!music_playing)
                 {
                     PlayMusicStream(music);
@@ -249,7 +275,7 @@ int main(void)
                     ball_dir.y *= -1;
                 }
 
-                if (ball_pos.x <= 0 + ball_radius)
+                if (ball_pos.x <= ball_radius)
                 {
                     enemy_lives--;
 
@@ -420,16 +446,8 @@ int main(void)
                 StopMusicStream(music);
                 music_playing = false;
 
-                if (!game_over_sound_played)
+                if (IsKeyPressed(KEY_X))
                 {
-                    PlaySound(sound_game_over);
-                    game_over_sound_played = true;
-                }
-
-                if (IsKeyPressed(KEY_R))
-                {
-                    game_over_sound_played = false;
-
                     enemy_lives = 3;
                     player_lives = 3;
 
@@ -451,10 +469,8 @@ int main(void)
                     state = STATE_GAME;
                 }
 
-                if (IsKeyPressed(KEY_P))
+                if (IsKeyPressed(KEY_Y))
                 {
-                    game_over_sound_played = false;
-
                     enemy_lives = 3;
                     player_lives = 3;
 
@@ -471,26 +487,54 @@ int main(void)
 
                     ClearBackground(BLACK);
 
-                    Color result_color = player_won ? GREEN : RED;
+                    Color result_color;
 
-                    const char *result_text = player_won ? "YOU WIN" : "YOU LOSE";
+                    const char *result_text;
+
+                    if (solo_mode)
+                    {
+                        if (player_won)
+                        {
+                            result_text = "YOU WIN";
+                            result_color = GREEN;
+                        }
+                        else
+                        {
+                            result_text = "GAME OVER";
+                            result_color = RED;
+                        }
+                    }
+                    else
+                    {
+                        if (player_won)
+                        {
+                            result_text = "PLAYER 2 WON";
+                            result_color = GREEN;
+                        }
+                        else
+                        {
+                            result_text = "PLAYER 1 WON";
+                            result_color = GREEN;
+                        }
+                    }
+
                     int result_text_width = MeasureText(result_text, 80);
 
                     DrawText(result_text,
-                            screen_width/2 - result_text_width/2,
-                            screen_height/2 - 150,
+                            screen_width / 2 - result_text_width / 2,
+                            screen_height / 2 - 150,
                             80,
                             result_color);
 
-                    DrawText("PRESS R TO RESTART",
-                            screen_width/2 - MeasureText("PRESS R TO RESTART", 30)/2,
-                            screen_height/2 + 50,
+                    DrawText("PRESS X TO RESTART",
+                            screen_width / 2 - MeasureText("PRESS X TO RESTART", 30) / 2,
+                            screen_height / 2 + 60,
                             30,
                             RAYWHITE);
 
-                    DrawText("PRESS P FOR MENU",
-                            screen_width/2 - MeasureText("PRESS P FOR MENU", 30)/2,
-                            screen_height/2 + 100,
+                    DrawText("PRESS Y FOR MENU",
+                            screen_width / 2 - MeasureText("PRESS Y FOR MENU", 30) / 2,
+                            screen_height / 2 + 120,
                             30,
                             RAYWHITE);
 
@@ -507,3 +551,8 @@ int main(void)
 
     return 0;
 }
+
+/*
+cc main.c pcg32.c -o game $(pkg-config --cflags --libs raylib) -lm
+./game
+*/
