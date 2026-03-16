@@ -19,42 +19,45 @@ typedef struct
 
     // font
     int font_margin;
-    int font_size;
+    int font_normal_size;
+    int font_large_size;
 
     // paddle
-    Rectangle player;
-    Rectangle enemy;
-
-    int speed_paddle;
+    Rectangle right_paddle;
+    Rectangle left_paddle;
+    int paddle_speed;
     int paddle_width;
     int paddle_height;
 
     // IA
-    float enemy_reaction_timer;
-    float enemy_reaction_delay;
-    float enemy_target;
-    bool enemy_has_prediction;
+    float left_paddle_reaction_timer;
+    float left_paddle_reaction_delay;
+    float left_paddle_target;
+    bool left_paddle_has_prediction;
 
     // ball
     Vector2 ball_pos;
     Vector2 ball_dir;
-
     float ball_radius;
-    float speed_ball;
-    float base_ball_speed;
-    float max_ball_speed;
+    float ball_speed;
+    float ball_base_speed;
+    float ball_max_speed;
+    float ball_inc_speed;
 
+    // ball animation
     float blink_timer;
-    float wait_timer;
+    float blink_duration;
+    float wait_start_timer;
+    float wait_start_duration;
     float start_delay;
     int blink_count;
     bool ball_active;
     bool ball_visible;
 
     // states
-    int enemy_lives;
-    int player_lives;
-    bool player_won;
+    int left_paddle_lives;
+    int right_paddle_lives;
+    bool right_paddle_won;
     bool solo_mode;
 
     // global state
