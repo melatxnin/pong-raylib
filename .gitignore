@@ -6,7 +6,6 @@
 *.dylib
 
 *.out
-*.exe
 *.app
 *.elf
 
